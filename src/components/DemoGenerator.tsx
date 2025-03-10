@@ -1,0 +1,208 @@
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+
+type QuestionType = "technical" | "behavioral" | "situational" | "competency";
+type DifficultyLevel = "easy" | "medium" | "hard";
+
+interface Question {
+  id: string;
+  text: string;
+  type: QuestionType;
+  difficulty: DifficultyLevel;
+}
+
+const sampleQuestions: Record<QuestionType, Record<DifficultyLevel, Question[]>> = {
+  technical: {
+    easy: [
+      { id: "t-e-1", text: "What is the difference between var, let, and const in JavaScript?", type: "technical", difficulty: "easy" },
+      { id: "t-e-2", text: "Explain what SQL is and how it's used in database management.", type: "technical", difficulty: "easy" }
+    ],
+    medium: [
+      { id: "t-m-1", text: "Describe the concept of RESTful APIs and their principles.", type: "technical", difficulty: "medium" },
+      { id: "t-m-2", text: "Explain the concept of inheritance in object-oriented programming.", type: "technical", difficulty: "medium" }
+    ],
+    hard: [
+      { id: "t-h-1", text: "Describe how you would implement a distributed caching system for a high-traffic application.", type: "technical", difficulty: "hard" },
+      { id: "t-h-2", text: "Explain how you would design a system for real-time data processing of millions of events per second.", type: "technical", difficulty: "hard" }
+    ]
+  },
+  behavioral: {
+    easy: [
+      { id: "b-e-1", text: "Tell me about a time when you worked effectively under pressure.", type: "behavioral", difficulty: "easy" },
+      { id: "b-e-2", text: "How do you prioritize your work when you have multiple deadlines?", type: "behavioral", difficulty: "easy" }
+    ],
+    medium: [
+      { id: "b-m-1", text: "Describe a situation where you had to resolve a conflict within your team.", type: "behavioral", difficulty: "medium" },
+      { id: "b-m-2", text: "Tell me about a time when you failed at a task and what you learned from it.", type: "behavioral", difficulty: "medium" }
+    ],
+    hard: [
+      { id: "b-h-1", text: "Describe a situation where you had to make an unpopular decision that affected your entire team or department.", type: "behavioral", difficulty: "hard" },
+      { id: "b-h-2", text: "Tell me about a time when you had to adapt to a significant change in organizational direction or strategy.", type: "behavioral", difficulty: "hard" }
+    ]
+  },
+  situational: {
+    easy: [
+      { id: "s-e-1", text: "How would you handle a situation where a team member isn't contributing their fair share?", type: "situational", difficulty: "easy" },
+      { id: "s-e-2", text: "What would you do if you were assigned a task but weren't given clear instructions?", type: "situational", difficulty: "easy" }
+    ],
+    medium: [
+      { id: "s-m-1", text: "How would you approach a situation where your team has missed a critical deadline?", type: "situational", difficulty: "medium" },
+      { id: "s-m-2", text: "What would you do if you strongly disagreed with a decision your manager made?", type: "situational", difficulty: "medium" }
+    ],
+    hard: [
+      { id: "s-h-1", text: "How would you handle a situation where you discover your team has been working on the wrong priorities for weeks?", type: "situational", difficulty: "hard" },
+      { id: "s-h-2", text: "What would you do if you discovered a senior colleague was manipulating data to make their performance look better?", type: "situational", difficulty: "hard" }
+    ]
+  },
+  competency: {
+    easy: [
+      { id: "c-e-1", text: "Describe your experience with project management methodologies.", type: "competency", difficulty: "easy" },
+      { id: "c-e-2", text: "What tools or techniques do you use to stay organized?", type: "competency", difficulty: "easy" }
+    ],
+    medium: [
+      { id: "c-m-1", text: "How do you approach learning new technologies or skills required for your role?", type: "competency", difficulty: "medium" },
+      { id: "c-m-2", text: "Describe your experience leading a cross-functional team or project.", type: "competency", difficulty: "medium" }
+    ],
+    hard: [
+      { id: "c-h-1", text: "How have you implemented process improvements that significantly enhanced team productivity or outcomes?", type: "competency", difficulty: "hard" },
+      { id: "c-h-2", text: "Describe how you've used data analysis to inform strategic decisions in your previous roles.", type: "competency", difficulty: "hard" }
+    ]
+  }
+};
+
+const DemoGenerator = () => {
+  const [activeTab, setActiveTab] = useState<string>("jobDescription");
+  const [questionType, setQuestionType] = useState<QuestionType>("technical");
+  const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>("medium");
+  const [jobDescription, setJobDescription] = useState("");
+  const [resumeText, setResumeText] = useState("");
+  const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generateQuestions = () => {
+    setIsGenerating(true);
+    
+    // In a real application, this would call an API
+    // For this demo, we'll use the sample questions
+    setTimeout(() => {
+      const questions = sampleQuestions[questionType][difficultyLevel];
+      setGeneratedQuestions(questions);
+      setIsGenerating(false);
+    }, 1500);
+  };
+
+  return (
+    <section id="demo" className="py-16">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Try Our Question Generator</h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            See how our system generates customized interview questions based on job descriptions and resumes.
+          </p>
+        </div>
+        
+        <div className="max-w-4xl mx-auto">
+          <Tabs defaultValue="jobDescription" onValueChange={setActiveTab} className="mb-8">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="jobDescription">Job Description</TabsTrigger>
+              <TabsTrigger value="resume">Resume</TabsTrigger>
+            </TabsList>
+            <TabsContent value="jobDescription" className="mt-4">
+              <Textarea 
+                placeholder="Paste the job description here..." 
+                className="min-h-[200px]"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+              />
+            </TabsContent>
+            <TabsContent value="resume" className="mt-4">
+              <Textarea 
+                placeholder="Paste your resume text here..." 
+                className="min-h-[200px]"
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+              />
+            </TabsContent>
+          </Tabs>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">Question Type</label>
+              <Select value={questionType} onValueChange={(value) => setQuestionType(value as QuestionType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select question type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="technical">Technical</SelectItem>
+                  <SelectItem value="behavioral">Behavioral</SelectItem>
+                  <SelectItem value="situational">Situational</SelectItem>
+                  <SelectItem value="competency">Competency-based</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Difficulty Level</label>
+              <Select value={difficultyLevel} onValueChange={(value) => setDifficultyLevel(value as DifficultyLevel)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <Button 
+            className="w-full bg-interview-teal hover:bg-interview-blue mb-8"
+            onClick={generateQuestions}
+            disabled={isGenerating || (activeTab === "jobDescription" && !jobDescription) || (activeTab === "resume" && !resumeText)}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Questions...
+              </>
+            ) : (
+              "Generate Questions"
+            )}
+          </Button>
+          
+          {generatedQuestions.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
+              <div className="space-y-4">
+                {generatedQuestions.map((question) => (
+                  <Card key={question.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm font-medium px-2 py-1 rounded bg-interview-teal/10 text-interview-teal">
+                          {question.type.charAt(0).toUpperCase() + question.type.slice(1)}
+                        </span>
+                        <span className="text-sm font-medium px-2 py-1 rounded bg-gray-100">
+                          {question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1)}
+                        </span>
+                      </div>
+                      <p className="text-gray-800">{question.text}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default DemoGenerator;
