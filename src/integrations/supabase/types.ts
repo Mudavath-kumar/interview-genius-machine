@@ -9,13 +9,94 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      difficulty_levels: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      question_types: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          created_at: string
+          difficulty_id: string
+          id: string
+          text: string
+          type_id: string
+        }
+        Insert: {
+          created_at?: string
+          difficulty_id: string
+          id?: string
+          text: string
+          type_id: string
+        }
+        Update: {
+          created_at?: string
+          difficulty_id?: string
+          id?: string
+          text?: string
+          type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_difficulty_id_fkey"
+            columns: ["difficulty_id"]
+            isOneToOne: false
+            referencedRelation: "difficulty_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "question_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_questions: {
+        Args: {
+          question_type: string
+          difficulty: string
+          limit_count?: number
+        }
+        Returns: {
+          created_at: string
+          difficulty_id: string
+          id: string
+          text: string
+          type_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
