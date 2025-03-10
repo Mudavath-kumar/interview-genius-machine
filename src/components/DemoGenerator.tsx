@@ -21,23 +21,40 @@ const DemoGenerator = () => {
   const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>("medium");
   const [jobDescription, setJobDescription] = useState("");
   const [resumeText, setResumeText] = useState("");
-  const [generatedQuestions, setGeneratedQuestions] = useState<Question[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+
+  const { data: questions = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['questions', questionType, difficultyLevel],
+    queryFn: () => generateQuestions(questionType, difficultyLevel, 2),
+    enabled: false, // Don't fetch automatically, wait for user action
+  });
+
+  const handleTypeChange = async (value: QuestionType) => {
+    setQuestionType(value);
+    if (difficultyLevel) {
+      await refetch();
+    }
+  };
+
+  const handleDifficultyChange = async (value: DifficultyLevel) => {
+    setDifficultyLevel(value);
+    if (questionType) {
+      await refetch();
+    }
+  };
 
   const generateQuestionsHandler = async () => {
-    setIsGenerating(true);
-    
     try {
-      const questions = await generateQuestions(questionType, difficultyLevel, 2);
-      setGeneratedQuestions(questions);
+      await refetch();
       toast.success("Questions generated successfully!");
     } catch (error) {
       console.error("Error generating questions:", error);
       toast.error("Failed to generate questions. Please try again.");
-    } finally {
-      setIsGenerating(false);
     }
   };
+
+  if (error) {
+    toast.error("An error occurred while fetching questions.");
+  }
 
   return (
     <section id="demo" className="py-16">
@@ -76,7 +93,7 @@ const DemoGenerator = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium mb-2">Question Type</label>
-              <Select value={questionType} onValueChange={(value) => setQuestionType(value as QuestionType)}>
+              <Select value={questionType} onValueChange={handleTypeChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select question type" />
                 </SelectTrigger>
@@ -91,7 +108,7 @@ const DemoGenerator = () => {
             
             <div>
               <label className="block text-sm font-medium mb-2">Difficulty Level</label>
-              <Select value={difficultyLevel} onValueChange={(value) => setDifficultyLevel(value as DifficultyLevel)}>
+              <Select value={difficultyLevel} onValueChange={handleDifficultyChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
@@ -107,9 +124,9 @@ const DemoGenerator = () => {
           <Button 
             className="w-full bg-interview-teal hover:bg-interview-blue mb-8"
             onClick={generateQuestionsHandler}
-            disabled={isGenerating || (activeTab === "jobDescription" && !jobDescription) || (activeTab === "resume" && !resumeText)}
+            disabled={isLoading || (activeTab === "jobDescription" && !jobDescription) || (activeTab === "resume" && !resumeText)}
           >
-            {isGenerating ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generating Questions...
@@ -119,11 +136,11 @@ const DemoGenerator = () => {
             )}
           </Button>
           
-          {generatedQuestions.length > 0 && (
+          {questions.length > 0 && (
             <div>
               <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
               <div className="space-y-4">
-                {generatedQuestions.map((question) => (
+                {questions.map((question) => (
                   <Card key={question.id}>
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start mb-2">
