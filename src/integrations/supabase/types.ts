@@ -24,6 +24,27 @@ export type Database = {
         }
         Relationships: []
       }
+      question_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       question_types: {
         Row: {
           id: string
@@ -78,6 +99,80 @@ export type Database = {
           },
         ]
       }
+      template_questions: {
+        Row: {
+          created_at: string
+          id: string
+          order_index: number
+          question_id: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_index: number
+          question_id: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "question_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_responses: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          feedback: string | null
+          id: string
+          question_id: string
+          transcript: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id: string
+          transcript?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          question_id?: string
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -95,6 +190,18 @@ export type Database = {
           id: string
           text: string
           type_id: string
+        }[]
+      }
+      get_template_questions: {
+        Args: {
+          template_id: string
+        }
+        Returns: {
+          question_id: string
+          text: string
+          type_id: string
+          difficulty_id: string
+          order_index: number
         }[]
       }
     }

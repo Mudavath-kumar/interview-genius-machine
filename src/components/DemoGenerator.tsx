@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { 
@@ -14,6 +14,7 @@ import {
   Question, 
   generateQuestions 
 } from "@/services/questionService";
+import VoiceRecorder from "@/components/VoiceRecorder";
 
 const DemoGenerator = () => {
   const [activeTab, setActiveTab] = useState<string>("jobDescription");
@@ -21,6 +22,9 @@ const DemoGenerator = () => {
   const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>("medium");
   const [jobDescription, setJobDescription] = useState("");
   const [resumeText, setResumeText] = useState("");
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const { data: questions = [], isLoading, error, refetch } = useQuery({
     queryKey: ['questions', questionType, difficultyLevel],
@@ -44,12 +48,33 @@ const DemoGenerator = () => {
 
   const generateQuestionsHandler = async () => {
     try {
+      // Reset the selected question when generating new questions
+      setSelectedQuestionId(null);
+      setTranscript(null);
+      setFeedback(null);
+      
       await refetch();
       toast.success("Questions generated successfully!");
     } catch (error) {
       console.error("Error generating questions:", error);
       toast.error("Failed to generate questions. Please try again.");
     }
+  };
+
+  const handleQuestionSelect = (questionId: string) => {
+    setSelectedQuestionId(questionId === selectedQuestionId ? null : questionId);
+    // Reset transcript and feedback when selecting a new question
+    setTranscript(null);
+    setFeedback(null);
+  };
+
+  const handleTranscriptReady = (newTranscript: string, newFeedback: string) => {
+    setTranscript(newTranscript);
+    setFeedback(newFeedback);
+  };
+
+  const getSelectedQuestion = () => {
+    return questions.find(q => q.id === selectedQuestionId);
   };
 
   if (error) {
@@ -63,6 +88,7 @@ const DemoGenerator = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Try Our Question Generator</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             See how our system generates customized interview questions based on job descriptions and resumes.
+            Practice answering with voice recognition and get AI feedback!
           </p>
         </div>
         
@@ -139,9 +165,16 @@ const DemoGenerator = () => {
           {questions.length > 0 && (
             <div>
               <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Click on a question to practice answering it with voice recognition.
+              </p>
               <div className="space-y-4">
                 {questions.map((question) => (
-                  <Card key={question.id}>
+                  <Card 
+                    key={question.id} 
+                    className={`cursor-pointer transition-all ${selectedQuestionId === question.id ? 'ring-2 ring-interview-teal' : 'hover:shadow-md'}`}
+                    onClick={() => handleQuestionSelect(question.id)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-sm font-medium px-2 py-1 rounded bg-interview-teal/10 text-interview-teal">
@@ -152,6 +185,38 @@ const DemoGenerator = () => {
                         </span>
                       </div>
                       <p className="text-gray-800">{question.text}</p>
+                      
+                      {selectedQuestionId === question.id && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <VoiceRecorder 
+                            questionId={question.id}
+                            questionText={question.text}
+                            questionType={question.type}
+                            onTranscriptReady={handleTranscriptReady}
+                          />
+                          
+                          {transcript && (
+                            <div className="mt-4">
+                              <h4 className="text-md font-semibold">Your Answer (Transcript):</h4>
+                              <p className="mt-2 p-3 bg-gray-50 rounded">{transcript}</p>
+                            </div>
+                          )}
+                          
+                          {feedback && (
+                            <div className="mt-4">
+                              <h4 className="text-md font-semibold flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4" />
+                                AI Feedback:
+                              </h4>
+                              <div className="mt-2 p-3 bg-interview-teal/10 rounded">
+                                {feedback.split('\n').map((paragraph, index) => (
+                                  <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
