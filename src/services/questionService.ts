@@ -21,8 +21,8 @@ export interface QuestionTemplate {
 export interface TemplateQuestion {
   question_id: string;
   text: string;
-  type_id: QuestionType;
-  difficulty_id: DifficultyLevel;
+  type_id: QuestionType; // This needs to be QuestionType
+  difficulty_id: DifficultyLevel; // This needs to be DifficultyLevel
   order_index: number;
 }
 
@@ -151,7 +151,12 @@ export const fetchTemplateQuestions = async (templateId: string): Promise<Templa
     throw error;
   }
 
-  return data;
+  // Cast the string types from the database to our union types
+  return data.map((q: any) => ({
+    ...q,
+    type_id: q.type_id as QuestionType,
+    difficulty_id: q.difficulty_id as DifficultyLevel
+  }));
 };
 
 export const createTemplate = async (name: string, description: string): Promise<QuestionTemplate> => {
