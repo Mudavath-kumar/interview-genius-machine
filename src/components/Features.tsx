@@ -1,7 +1,7 @@
 
 import { 
   FileCheck, 
-  MicVoice, 
+  Mic, 
   BrainCircuit, 
   ListChecks, 
   UserRound, 
@@ -35,7 +35,7 @@ const Features = () => {
       description: "Upload your resume to generate tailored questions based on your experience and skills."
     },
     {
-      icon: <MicVoice className="h-6 w-6 text-interview-teal" />,
+      icon: <Mic className="h-6 w-6 text-interview-teal" />,
       title: "Voice-Based Answering",
       description: "Practice your responses with speech recognition and get real-time feedback."
     },
