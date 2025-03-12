@@ -31,10 +31,12 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       });
 
       if (error) {
+        console.error("Supabase function error:", error);
         throw error;
       }
 
-      if (!data.audio) {
+      if (!data || !data.audio) {
+        console.error("Invalid response:", data);
         throw new Error("No audio data returned");
       }
 
@@ -49,18 +51,39 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       
       // Create and play audio
       const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        setIsPlaying(false);
+      
+      // Make sure audio is fully loaded before playing
+      audio.oncanplaythrough = () => {
+        audio.play()
+          .then(() => {
+            setIsPlaying(true);
+            setIsLoading(false);
+          })
+          .catch(playError => {
+            console.error("Error playing audio:", playError);
+            toast.error("Failed to play audio. Please try again.");
+            setIsLoading(false);
+            URL.revokeObjectURL(audioUrl);
+          });
+      };
+      
+      audio.onerror = (e) => {
+        console.error("Audio error:", e);
+        toast.error("Error loading audio. Please try again.");
+        setIsLoading(false);
         URL.revokeObjectURL(audioUrl);
       };
       
-      audio.play();
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+        setAudioElement(null);
+      };
+      
       setAudioElement(audio);
-      setIsPlaying(true);
     } catch (err) {
-      console.error("Error playing audio:", err);
+      console.error("Error processing audio:", err);
       toast.error("Failed to play audio. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
