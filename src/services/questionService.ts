@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type QuestionType = "technical" | "behavioral" | "situational" | "competency";
@@ -30,8 +29,8 @@ export interface QuestionTemplate {
 export interface TemplateQuestion {
   question_id: string;
   text: string;
-  type_id: QuestionType; // This needs to be QuestionType
-  difficulty_id: DifficultyLevel; // This needs to be DifficultyLevel
+  type_id: QuestionType;
+  difficulty_id: DifficultyLevel;
   order_index: number;
 }
 
@@ -76,7 +75,6 @@ export const generateQuestions = async (
   count: number = 10
 ): Promise<Question[]> => {
   try {
-    // Call the custom function we created in the migration
     const { data, error } = await supabase.rpc(
       'generate_questions', 
       { 
@@ -91,7 +89,6 @@ export const generateQuestions = async (
       throw error;
     }
 
-    // Transform the data to match our Question interface
     return data.map((q: any) => ({
       id: q.id,
       text: q.text,
@@ -110,33 +107,22 @@ export const generateQuestionsWithJobDescription = async (
   count: number = 10
 ): Promise<Question[]> => {
   try {
-    const { data, error } = await supabase
-      .from("questions")
-      .select(`
-        id,
-        text,
-        type_id,
-        difficulty_id,
-        sample_answer,
-        job_descriptions(id, title, description, required_skills)
-      `)
-      .eq("job_description_id", jobDescriptionId)
-      .limit(count);
+    const { data, error } = await supabase.functions.invoke(
+      'generate-custom-questions',
+      {
+        body: { 
+          jobDescriptionId: jobDescriptionId,
+          limit_count: count
+        }
+      }
+    );
 
     if (error) {
-      console.error("Error fetching questions for job description:", error);
+      console.error("Error generating questions with job description:", error);
       throw error;
     }
 
-    // Transform the data to match our Question interface
-    return data.map((q: any) => ({
-      id: q.id,
-      text: q.text,
-      type: q.type_id as QuestionType,
-      difficulty: q.difficulty_id as DifficultyLevel,
-      sample_answer: q.sample_answer,
-      job_description: q.job_descriptions
-    }));
+    return data.questions;
   } catch (error) {
     console.error("Error in generateQuestionsWithJobDescription:", error);
     throw error;
@@ -183,8 +169,6 @@ export const generateFeedback = async (
   questionId: string,
   transcript: string
 ): Promise<string> => {
-  // This would typically call an edge function that uses NLP to evaluate the response
-  // For now, we'll just return a placeholder
   return "Great job! Your answer demonstrates good understanding of the topic.";
 };
 
@@ -212,7 +196,6 @@ export const fetchTemplateQuestions = async (templateId: string): Promise<Templa
     throw error;
   }
 
-  // Cast the string types from the database to our union types
   return data.map((q: any) => ({
     ...q,
     type_id: q.type_id as QuestionType,

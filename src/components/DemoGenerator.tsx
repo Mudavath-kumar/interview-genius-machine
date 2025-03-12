@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +17,7 @@ import {
 } from "@/services/questionService";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import JobDescriptionSelect from "@/components/JobDescriptionSelect";
+import TextToSpeech from "@/components/TextToSpeech";
 
 const DemoGenerator = () => {
   const [activeTab, setActiveTab] = useState<string>("jobDescription");
@@ -28,7 +28,7 @@ const DemoGenerator = () => {
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [mode, setMode] = useState<"manual" | "jobDescription">("manual");
+  const [mode, setMode] = useState<"manual" | "jobDescription">("jobDescription");
   const [selectedJobDescription, setSelectedJobDescription] = useState<JobDescription | null>(null);
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
 
@@ -60,7 +60,6 @@ const DemoGenerator = () => {
 
   const generateQuestionsHandler = async () => {
     try {
-      // Reset the selected question when generating new questions
       setSelectedQuestionId(null);
       setTranscript(null);
       setFeedback(null);
@@ -76,7 +75,6 @@ const DemoGenerator = () => {
 
   const handleQuestionSelect = (questionId: string) => {
     setSelectedQuestionId(questionId === selectedQuestionId ? null : questionId);
-    // Reset transcript and feedback when selecting a new question
     setTranscript(null);
     setFeedback(null);
   };
@@ -112,8 +110,8 @@ const DemoGenerator = () => {
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Try Our Question Generator</h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            See how our system generates customized interview questions based on job descriptions and resumes.
-            Practice answering with voice recognition and get AI feedback!
+            See how our system generates customized interview questions based on job descriptions.
+            Practice answering with voice recognition, listen to sample answers, and get AI feedback!
           </p>
         </div>
         
@@ -124,19 +122,10 @@ const DemoGenerator = () => {
               <TabsTrigger value="resume">Resume</TabsTrigger>
             </TabsList>
             <TabsContent value="jobDescription" className="mt-4">
-              {mode === "manual" ? (
-                <Textarea 
-                  placeholder="Paste the job description here..." 
-                  className="min-h-[200px]"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                />
-              ) : (
-                <JobDescriptionSelect 
-                  onSelect={handleJobDescriptionSelect}
-                  selectedId={selectedJobDescription?.id}
-                />
-              )}
+              <JobDescriptionSelect 
+                onSelect={handleJobDescriptionSelect}
+                selectedId={selectedJobDescription?.id}
+              />
             </TabsContent>
             <TabsContent value="resume" className="mt-4">
               <Textarea 
@@ -189,6 +178,13 @@ const DemoGenerator = () => {
                   Selected Job: {selectedJobDescription.title}
                 </h3>
                 <p className="text-sm text-gray-700 mb-2">{selectedJobDescription.description}</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {selectedJobDescription.required_skills.map((skill, index) => (
+                    <Badge key={index} variant="outline" className="bg-white">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -199,22 +195,12 @@ const DemoGenerator = () => {
                 </Button>
               </div>
             )}
-            
-            {mode === "manual" && (
-              <Button 
-                variant="outline"
-                onClick={() => setActiveTab("jobDescription")}
-                className="mb-4"
-              >
-                Select a Predefined Job Description
-              </Button>
-            )}
           </div>
           
           <Button 
             className="w-full bg-interview-teal hover:bg-interview-blue mb-8"
             onClick={generateQuestionsHandler}
-            disabled={isLoading || (mode === "manual" && activeTab === "jobDescription" && !jobDescription) || (mode === "manual" && activeTab === "resume" && !resumeText) || (mode === "jobDescription" && !selectedJobDescription)}
+            disabled={isLoading || (mode === "manual" && !questionType) || (mode === "jobDescription" && !selectedJobDescription)}
           >
             {isLoading ? (
               <>
@@ -230,7 +216,7 @@ const DemoGenerator = () => {
             <div>
               <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Click on a question to practice answering it with voice recognition.
+                Click on a question to practice answering it with voice recognition or listen to sample answers.
               </p>
               <div className="space-y-4">
                 {questions.map((question) => (
@@ -252,20 +238,35 @@ const DemoGenerator = () => {
                       
                       {question.sample_answer && (
                         <div className="mt-3">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleAnswer(question.id);
-                            }}
-                          >
-                            {showAnswers[question.id] ? "Hide Sample Answer" : "View Sample Answer"}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAnswer(question.id);
+                              }}
+                            >
+                              {showAnswers[question.id] ? "Hide Sample Answer" : "View Sample Answer"}
+                            </Button>
+                            
+                            {!showAnswers[question.id] && (
+                              <TextToSpeech 
+                                text={question.sample_answer} 
+                                voice="nova"
+                              />
+                            )}
+                          </div>
                           
                           {showAnswers[question.id] && (
                             <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-200">
-                              <h5 className="text-sm font-medium mb-1">Sample Answer:</h5>
+                              <div className="flex justify-between items-center mb-2">
+                                <h5 className="text-sm font-medium">Sample Answer:</h5>
+                                <TextToSpeech 
+                                  text={question.sample_answer} 
+                                  voice="nova"
+                                />
+                              </div>
                               <p className="text-gray-700 text-sm">{question.sample_answer}</p>
                             </div>
                           )}
@@ -290,10 +291,13 @@ const DemoGenerator = () => {
                           
                           {feedback && (
                             <div className="mt-4">
-                              <h4 className="text-md font-semibold flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4" />
-                                AI Feedback:
-                              </h4>
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-md font-semibold flex items-center gap-2">
+                                  <MessageSquare className="h-4 w-4" />
+                                  AI Feedback:
+                                </h4>
+                                <TextToSpeech text={feedback} voice="echo" />
+                              </div>
                               <div className="mt-2 p-3 bg-interview-teal/10 rounded">
                                 {feedback.split('\n').map((paragraph, index) => (
                                   <p key={index} className="mb-2 last:mb-0">{paragraph}</p>
