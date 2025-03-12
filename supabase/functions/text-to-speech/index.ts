@@ -19,6 +19,7 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    // Get API key from environment variables
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
     if (!OPENAI_API_KEY) {

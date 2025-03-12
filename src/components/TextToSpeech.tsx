@@ -13,6 +13,7 @@ interface TextToSpeechProps {
 const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [retries, setRetries] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
 
@@ -49,7 +50,9 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
     setIsLoading(true);
     
     try {
-      console.log("Calling text-to-speech function with:", { text: text.substring(0, 50) + "...", voice });
+      // Truncate text for logging to avoid console clutter
+      const truncatedText = text.length > 50 ? text.substring(0, 50) + "..." : text;
+      console.log("Calling text-to-speech function with:", { text: truncatedText, voice });
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text, voice }
@@ -62,7 +65,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
 
       if (!data || !data.audio) {
         console.error("Invalid response:", data);
-        throw new Error("No audio data returned");
+        throw new Error(data?.error || "No audio data returned");
       }
 
       console.log("Received audio data of length:", data.audio.length);
@@ -89,6 +92,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
             console.log("Audio playback started successfully");
             setIsPlaying(true);
             setIsLoading(false);
+            setRetries(0); // Reset retries on success
           })
           .catch(playError => {
             console.error("Error playing audio:", playError);
@@ -121,9 +125,26 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         }
       }, 15000); // 15 second timeout
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error processing audio:", err);
-      toast.error("Failed to play audio. Please try again.");
+      
+      // If we get a 500 error about the API key, show a specific message
+      if (err.message?.includes("OpenAI API key is not configured")) {
+        toast.error("OpenAI API key is not properly configured.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Attempt to retry if we haven't exceeded our retry limit
+      if (retries < 2) {
+        console.log(`Retrying... (${retries + 1}/2)`);
+        setRetries(prev => prev + 1);
+        toast.info("Retrying audio generation...");
+        setTimeout(() => handlePlay(), 1000);
+        return;
+      }
+      
+      toast.error("Failed to play audio. Please try again later.");
       setIsLoading(false);
       cleanupAudio();
     }
