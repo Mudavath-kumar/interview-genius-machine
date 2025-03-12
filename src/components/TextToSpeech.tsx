@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Volume2, Loader2, VolumeX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,19 +13,44 @@ interface TextToSpeechProps {
 const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+
+  // Clean up audio resources when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+    };
+  }, []);
+
+  const cleanupAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
+  };
 
   const handlePlay = async () => {
     // If already playing, stop it
-    if (isPlaying && audioElement) {
-      audioElement.pause();
-      audioElement.currentTime = 0;
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       setIsPlaying(false);
       return;
     }
 
+    cleanupAudio(); // Clean up any previous audio
     setIsLoading(true);
+    
     try {
+      console.log("Calling text-to-speech function with:", { text: text.substring(0, 50) + "...", voice });
+      
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text, voice }
       });
@@ -40,6 +65,8 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         throw new Error("No audio data returned");
       }
 
+      console.log("Received audio data of length:", data.audio.length);
+
       // Convert base64 to blob
       const binaryString = atob(data.audio);
       const bytes = new Uint8Array(binaryString.length);
@@ -48,14 +75,18 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       }
       const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
       const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Create and play audio
+      audioUrlRef.current = audioUrl;
+
+      // Create audio element
       const audio = new Audio(audioUrl);
+      audioRef.current = audio;
       
-      // Make sure audio is fully loaded before playing
+      // Set up event handlers
       audio.oncanplaythrough = () => {
+        console.log("Audio ready to play");
         audio.play()
           .then(() => {
+            console.log("Audio playback started successfully");
             setIsPlaying(true);
             setIsLoading(false);
           })
@@ -63,7 +94,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
             console.error("Error playing audio:", playError);
             toast.error("Failed to play audio. Please try again.");
             setIsLoading(false);
-            URL.revokeObjectURL(audioUrl);
+            cleanupAudio();
           });
       };
       
@@ -71,20 +102,30 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         console.error("Audio error:", e);
         toast.error("Error loading audio. Please try again.");
         setIsLoading(false);
-        URL.revokeObjectURL(audioUrl);
+        cleanupAudio();
       };
       
       audio.onended = () => {
+        console.log("Audio playback completed");
         setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
-        setAudioElement(null);
+        cleanupAudio();
       };
       
-      setAudioElement(audio);
+      // Handle potential timeout
+      setTimeout(() => {
+        if (isLoading) {
+          console.warn("Audio loading timeout - resetting state");
+          setIsLoading(false);
+          cleanupAudio();
+          toast.error("Audio loading timed out. Please try again.");
+        }
+      }, 15000); // 15 second timeout
+      
     } catch (err) {
       console.error("Error processing audio:", err);
       toast.error("Failed to play audio. Please try again.");
       setIsLoading(false);
+      cleanupAudio();
     }
   };
 

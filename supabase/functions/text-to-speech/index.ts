@@ -19,13 +19,20 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set in environment variables");
+      throw new Error('OpenAI API key is not configured');
+    }
+
     console.log(`Generating speech for text: "${text.substring(0, 50)}..." with voice: ${voice}`);
 
     // Send text to OpenAI's TTS API
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
