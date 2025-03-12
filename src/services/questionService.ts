@@ -9,6 +9,15 @@ export interface Question {
   text: string;
   type: QuestionType;
   difficulty: DifficultyLevel;
+  sample_answer?: string;
+  job_description?: JobDescription;
+}
+
+export interface JobDescription {
+  id: string;
+  title: string;
+  description: string;
+  required_skills: string[];
 }
 
 export interface QuestionTemplate {
@@ -64,7 +73,7 @@ export const fetchDifficultyLevels = async () => {
 export const generateQuestions = async (
   questionType: QuestionType,
   difficultyLevel: DifficultyLevel,
-  count: number = 2
+  count: number = 10
 ): Promise<Question[]> => {
   try {
     // Call the custom function we created in the migration
@@ -87,12 +96,64 @@ export const generateQuestions = async (
       id: q.id,
       text: q.text,
       type: q.type_id as QuestionType,
-      difficulty: q.difficulty_id as DifficultyLevel
+      difficulty: q.difficulty_id as DifficultyLevel,
+      sample_answer: q.sample_answer
     }));
   } catch (error) {
     console.error("Error in generateQuestions:", error);
     throw error;
   }
+};
+
+export const generateQuestionsWithJobDescription = async (
+  jobDescriptionId: string,
+  count: number = 10
+): Promise<Question[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("questions")
+      .select(`
+        id,
+        text,
+        type_id,
+        difficulty_id,
+        sample_answer,
+        job_descriptions(id, title, description, required_skills)
+      `)
+      .eq("job_description_id", jobDescriptionId)
+      .limit(count);
+
+    if (error) {
+      console.error("Error fetching questions for job description:", error);
+      throw error;
+    }
+
+    // Transform the data to match our Question interface
+    return data.map((q: any) => ({
+      id: q.id,
+      text: q.text,
+      type: q.type_id as QuestionType,
+      difficulty: q.difficulty_id as DifficultyLevel,
+      sample_answer: q.sample_answer,
+      job_description: q.job_descriptions
+    }));
+  } catch (error) {
+    console.error("Error in generateQuestionsWithJobDescription:", error);
+    throw error;
+  }
+};
+
+export const fetchJobDescriptions = async (): Promise<JobDescription[]> => {
+  const { data, error } = await supabase
+    .from("job_descriptions")
+    .select("*");
+
+  if (error) {
+    console.error("Error fetching job descriptions:", error);
+    throw error;
+  }
+
+  return data;
 };
 
 export const saveVoiceResponse = async (

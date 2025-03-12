@@ -24,6 +24,30 @@ export type Database = {
         }
         Relationships: []
       }
+      job_descriptions: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          required_skills: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          required_skills?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          required_skills?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
       question_templates: {
         Row: {
           created_at: string
@@ -65,6 +89,8 @@ export type Database = {
           created_at: string
           difficulty_id: string
           id: string
+          job_description_id: string | null
+          sample_answer: string | null
           text: string
           type_id: string
         }
@@ -72,6 +98,8 @@ export type Database = {
           created_at?: string
           difficulty_id: string
           id?: string
+          job_description_id?: string | null
+          sample_answer?: string | null
           text: string
           type_id: string
         }
@@ -79,6 +107,8 @@ export type Database = {
           created_at?: string
           difficulty_id?: string
           id?: string
+          job_description_id?: string | null
+          sample_answer?: string | null
           text?: string
           type_id?: string
         }
@@ -88,6 +118,13 @@ export type Database = {
             columns: ["difficulty_id"]
             isOneToOne: false
             referencedRelation: "difficulty_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_job_description_id_fkey"
+            columns: ["job_description_id"]
+            isOneToOne: false
+            referencedRelation: "job_descriptions"
             referencedColumns: ["id"]
           },
           {
@@ -188,6 +225,8 @@ export type Database = {
           created_at: string
           difficulty_id: string
           id: string
+          job_description_id: string | null
+          sample_answer: string | null
           text: string
           type_id: string
         }[]
