@@ -11,14 +11,13 @@ const APIKeyNotification = () => {
   return (
     <Alert variant="destructive" className="mb-6">
       <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Missing OpenAI API Key</AlertTitle>
+      <AlertTitle>OpenAI API Key Issue</AlertTitle>
       <AlertDescription>
         <p className="mb-2">
-          The OpenAI API key is missing from your Supabase project secrets.
+          There seems to be an issue with the OpenAI API key. The text-to-speech feature requires a valid API key.
         </p>
         <p className="text-sm">
-          To fix this issue: Go to your Supabase Project Dashboard &gt; Settings &gt; API &gt; Project Secrets and add your 
-          <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">OPENAI_API_KEY</code>
+          Please verify that you've added a valid OpenAI API key in your Supabase Project Dashboard &gt; Settings &gt; API &gt; Project Secrets with the name <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">OPENAI_API_KEY</code>
         </p>
       </AlertDescription>
     </Alert>

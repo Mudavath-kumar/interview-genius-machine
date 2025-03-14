@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Volume2, Loader2, VolumeX, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import APIKeyNotification from "./APIKeyNotification";
 
 interface TextToSpeechProps {
   text: string;
@@ -179,6 +180,10 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         }
       }, 15000); // 15 second timeout
       
+      // Clear timeout when audio loads or component unmounts
+      const clearTimeoutFunc = () => clearTimeout(timeout);
+      audio.addEventListener('canplaythrough', clearTimeoutFunc, { once: true });
+      
       // Cleanup timeout if component unmounts
       return () => clearTimeout(timeout);
       
@@ -191,9 +196,10 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       console.error("Error processing audio:", err);
       
       // If we get a specific error about the API key, show a specific message
-      if (err.message?.includes("OpenAI API key is not configured")) {
+      if (err.message?.includes("OpenAI API key is not configured") || 
+          err.message?.includes("OpenAI API key")) {
         setMissingAPIKey(true);
-        toast.error("OpenAI API key is missing in Supabase. Please add the OPENAI_API_KEY in your Supabase project settings.");
+        toast.error("OpenAI API key is missing or invalid in Supabase. Please check your key.");
         setIsLoading(false);
         cleanupResources();
         return;
@@ -221,26 +227,29 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
   };
 
   return (
-    <Button
-      onClick={handlePlay}
-      variant="outline"
-      size="sm"
-      disabled={isLoading}
-      className="flex items-center gap-2"
-    >
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : missingAPIKey ? (
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
-      ) : isPlaying ? (
-        <VolumeX className="h-4 w-4" />
-      ) : (
-        <Volume2 className="h-4 w-4" />
-      )}
-      {isLoading ? "Loading..." : 
-        missingAPIKey ? "API Key Missing" : 
-        isPlaying ? "Stop" : "Listen"}
-    </Button>
+    <>
+      {missingAPIKey && <APIKeyNotification />}
+      <Button
+        onClick={handlePlay}
+        variant="outline"
+        size="sm"
+        disabled={isLoading}
+        className="flex items-center gap-2"
+      >
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : missingAPIKey ? (
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+        ) : isPlaying ? (
+          <VolumeX className="h-4 w-4" />
+        ) : (
+          <Volume2 className="h-4 w-4" />
+        )}
+        {isLoading ? "Loading..." : 
+          missingAPIKey ? "API Key Missing" : 
+          isPlaying ? "Stop" : "Listen"}
+      </Button>
+    </>
   );
 };
 

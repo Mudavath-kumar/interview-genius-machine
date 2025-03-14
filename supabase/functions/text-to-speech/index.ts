@@ -55,10 +55,35 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("OpenAI API error:", errorText);
+      const errorData = await response.text();
+      let errorMessage = errorData;
+      
+      try {
+        // Try to parse as JSON to get a cleaner error message
+        const errorJson = JSON.parse(errorData);
+        errorMessage = errorJson.error?.message || errorJson.error || errorData;
+      } catch (e) {
+        // If parsing fails, use the raw error text
+      }
+      
+      console.error("OpenAI API error:", errorMessage);
+      
+      // Check if it's an authentication error
+      if (response.status === 401 || errorMessage.includes("auth") || errorMessage.includes("key")) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'OpenAI API key is invalid',
+            message: 'The provided OpenAI API key was rejected. Please check your key and try again.'
+          }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${response.status} ${errorText}` }),
+        JSON.stringify({ error: `OpenAI API error: ${errorMessage}` }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
