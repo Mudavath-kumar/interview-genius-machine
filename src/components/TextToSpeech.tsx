@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Volume2, Loader2, VolumeX } from "lucide-react";
+import { Volume2, Loader2, VolumeX, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [retries, setRetries] = useState(0);
+  const [missingAPIKey, setMissingAPIKey] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -64,6 +65,9 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       return;
     }
 
+    // Reset missing API key state
+    setMissingAPIKey(false);
+
     // Clean up any previous audio and prepare for new request
     cleanupResources();
     setIsLoading(true);
@@ -84,6 +88,11 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       if (error) {
         console.error("Supabase function error:", error);
         throw new Error(`Supabase function error: ${error.message}`);
+      }
+
+      if (data?.error === "OpenAI API key is not configured") {
+        setMissingAPIKey(true);
+        throw new Error("OpenAI API key is not configured. Please add it to your Supabase project secrets.");
       }
 
       if (!data || !data.audio) {
@@ -183,7 +192,8 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       
       // If we get a specific error about the API key, show a specific message
       if (err.message?.includes("OpenAI API key is not configured")) {
-        toast.error("OpenAI API key is not properly configured in Supabase.");
+        setMissingAPIKey(true);
+        toast.error("OpenAI API key is missing in Supabase. Please add the OPENAI_API_KEY in your Supabase project settings.");
         setIsLoading(false);
         cleanupResources();
         return;
@@ -220,12 +230,16 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
     >
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
+      ) : missingAPIKey ? (
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
       ) : isPlaying ? (
         <VolumeX className="h-4 w-4" />
       ) : (
         <Volume2 className="h-4 w-4" />
       )}
-      {isLoading ? "Loading..." : isPlaying ? "Stop" : "Listen"}
+      {isLoading ? "Loading..." : 
+        missingAPIKey ? "API Key Missing" : 
+        isPlaying ? "Stop" : "Listen"}
     </Button>
   );
 };

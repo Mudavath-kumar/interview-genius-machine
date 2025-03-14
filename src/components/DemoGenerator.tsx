@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; 
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +19,8 @@ import {
 import VoiceRecorder from "@/components/VoiceRecorder";
 import JobDescriptionSelect from "@/components/JobDescriptionSelect";
 import TextToSpeech from "@/components/TextToSpeech";
+import APIKeyNotification from "@/components/APIKeyNotification";
+import { supabase } from "@/integrations/supabase/client";
 
 const DemoGenerator = () => {
   const [activeTab, setActiveTab] = useState<string>("jobDescription");
@@ -33,6 +34,26 @@ const DemoGenerator = () => {
   const [mode, setMode] = useState<"manual" | "jobDescription">("jobDescription");
   const [selectedJobDescription, setSelectedJobDescription] = useState<JobDescription | null>(null);
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { text: "Test", voice: "alloy" }
+        });
+        
+        if (error || data?.error === "OpenAI API key is not configured") {
+          setApiKeyMissing(true);
+        }
+      } catch (e) {
+        console.error("Error checking API key:", e);
+        setApiKeyMissing(true);
+      }
+    };
+    
+    checkApiKey();
+  }, []);
 
   const { data: questions = [], isLoading, error, refetch } = useQuery({
     queryKey: ['questions', questionType, difficultyLevel, mode, selectedJobDescription?.id],
@@ -118,6 +139,8 @@ const DemoGenerator = () => {
         </div>
         
         <div className="max-w-4xl mx-auto">
+          {apiKeyMissing && <APIKeyNotification />}
+          
           <Tabs defaultValue="jobDescription" onValueChange={setActiveTab} className="mb-8">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="jobDescription">Job Description</TabsTrigger>

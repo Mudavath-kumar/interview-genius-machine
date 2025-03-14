@@ -27,7 +27,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'OpenAI API key is not configured',
-          message: 'Please add the OPENAI_API_KEY to your Supabase project secrets' 
+          message: 'Please add the OPENAI_API_KEY to your Supabase project secrets',
+          details: 'Go to your Supabase project dashboard, then Settings > API > Project Secrets and add OPENAI_API_KEY'
         }), 
         { 
           status: 500,
