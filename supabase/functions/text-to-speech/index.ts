@@ -24,7 +24,13 @@ serve(async (req) => {
     
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not set in environment variables");
-      throw new Error('OpenAI API key is not configured');
+      return new Response(
+        JSON.stringify({ error: 'OpenAI API key is not configured' }), 
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     console.log(`Generating speech for text: "${text.substring(0, 50)}..." with voice: ${voice}`);
@@ -47,14 +53,26 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+      return new Response(
+        JSON.stringify({ error: `OpenAI API error: ${response.status} ${errorText}` }),
+        { 
+          status: response.status, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
     // Get the audio data as ArrayBuffer
     const audioBuffer = await response.arrayBuffer();
     
     if (!audioBuffer || audioBuffer.byteLength === 0) {
-      throw new Error("Received empty audio buffer from OpenAI");
+      return new Response(
+        JSON.stringify({ error: "Received empty audio buffer from OpenAI" }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
     
     console.log(`Received audio buffer of size: ${audioBuffer.byteLength} bytes`);
