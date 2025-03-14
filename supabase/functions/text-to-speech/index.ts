@@ -25,7 +25,10 @@ serve(async (req) => {
     if (!OPENAI_API_KEY) {
       console.error("OPENAI_API_KEY is not set in environment variables");
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key is not configured' }), 
+        JSON.stringify({ 
+          error: 'OpenAI API key is not configured',
+          message: 'Please add the OPENAI_API_KEY to your Supabase project secrets' 
+        }), 
         { 
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
