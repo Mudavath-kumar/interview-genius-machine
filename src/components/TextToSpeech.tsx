@@ -31,6 +31,11 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       return;
     }
 
+    if (!text || text.trim() === "") {
+      toast.error("No text provided for speech synthesis");
+      return;
+    }
+
     // Reset missing API key state
     setMissingAPIKey(false);
     setIsLoading(true);
@@ -41,7 +46,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       if (result.missingAPIKey) {
         setMissingAPIKey(true);
         setIsLoading(false);
-        toast.error("OpenAI API key is missing or invalid in Supabase. Please check your key.");
+        toast.error("OpenAI API key is missing or invalid. Please check Supabase project secrets.");
         return;
       }
 
@@ -56,8 +61,8 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       console.error("Error in text-to-speech:", err);
       
       // Attempt to retry if we haven't exceeded our retry limit
-      if (retries < 2) {
-        console.log(`Retrying... (${retries + 1}/2)`);
+      if (retries < 1) {
+        console.log(`Retrying... (${retries + 1}/1)`);
         setRetries(prev => prev + 1);
         toast.info("Retrying audio generation...");
         
@@ -68,7 +73,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         return;
       }
       
-      toast.error("Failed to play audio after multiple attempts. Please try again later.");
+      toast.error("Failed to play audio. Please try again later.");
       setIsLoading(false);
     }
   }, [isPlaying, text, voice, retries, playAudio, stopAudio, setIsLoading]);
@@ -80,7 +85,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
         onClick={handlePlay}
         variant="outline"
         size="sm"
-        disabled={isLoading}
+        disabled={isLoading || !text || text.trim() === ""}
         className="flex items-center gap-2"
       >
         {isLoading ? (
@@ -93,7 +98,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
           <Volume2 className="h-4 w-4" />
         )}
         {isLoading ? "Loading..." : 
-          missingAPIKey ? "API Key Missing" : 
+          missingAPIKey ? "API Key Issue" : 
           isPlaying ? "Stop" : "Listen"}
       </Button>
     </>

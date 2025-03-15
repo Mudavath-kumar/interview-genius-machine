@@ -28,7 +28,6 @@ serve(async (req) => {
         JSON.stringify({ 
           error: 'OpenAI API key is not configured',
           message: 'Please add the OPENAI_API_KEY to your Supabase project secrets',
-          details: 'Go to your Supabase project dashboard, then Settings > API > Project Secrets and add OPENAI_API_KEY'
         }), 
         { 
           status: 500,
@@ -108,18 +107,7 @@ serve(async (req) => {
     
     // Convert to base64
     const uint8Array = new Uint8Array(audioBuffer);
-    let binary = '';
-    const chunkSize = 1024;
-    
-    // Process in chunks to prevent memory issues with large audio files
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, Math.min(i + chunkSize, uint8Array.length));
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
-      }
-    }
-    
-    const base64Audio = btoa(binary);
+    const base64Audio = btoa(String.fromCharCode(...uint8Array));
     
     console.log(`Converted to base64 string of length: ${base64Audio.length}`);
 

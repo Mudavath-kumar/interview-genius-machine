@@ -25,21 +25,21 @@ export const synthesizeSpeech = async ({
 
     if (error) {
       console.error("Supabase function error:", error);
-      throw new Error(`Supabase function error: ${error.message}`);
-    }
-
-    if (data?.error === "OpenAI API key is not configured") {
-      return { 
-        missingAPIKey: true,
-        error: "OpenAI API key is not configured. Please add it to your Supabase project secrets."
-      };
+      return { error: `Function error: ${error.message}` };
     }
 
     if (!data || !data.audio) {
       console.error("Invalid response:", data);
-      return { 
-        error: data?.error || "No audio data returned" 
-      };
+      
+      // Check if it's an API key issue
+      if (data?.error?.includes("API key") || data?.error?.includes("authentication")) {
+        return { 
+          missingAPIKey: true,
+          error: data?.error || "OpenAI API key is invalid or missing"
+        };
+      }
+      
+      return { error: data?.error || "No audio data returned" };
     }
 
     console.log("Received audio data of length:", data.audio.length);
@@ -49,8 +49,9 @@ export const synthesizeSpeech = async ({
     console.error("Error synthesizing speech:", err);
     
     // Check if error is related to API key
-    if (err.message?.includes("OpenAI API key is not configured") || 
-        err.message?.includes("OpenAI API key")) {
+    if (err.message?.includes("API key") || 
+        err.message?.toLowerCase().includes("authentication") || 
+        err.message?.toLowerCase().includes("auth")) {
       return {
         missingAPIKey: true,
         error: err.message
