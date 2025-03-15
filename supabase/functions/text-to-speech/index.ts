@@ -56,16 +56,22 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.text();
       let errorMessage = errorData;
+      let detailedError = "";
       
       try {
         // Try to parse as JSON to get a cleaner error message
         const errorJson = JSON.parse(errorData);
         errorMessage = errorJson.error?.message || errorJson.error || errorData;
+        
+        // Extract more detailed error information if available
+        if (errorJson.error?.code) {
+          detailedError = `Error code: ${errorJson.error.code}`;
+        }
       } catch (e) {
         // If parsing fails, use the raw error text
       }
       
-      console.error("OpenAI API error:", errorMessage);
+      console.error("OpenAI API error:", errorMessage, detailedError);
       
       // Check if it's an authentication or quota error
       if (response.status === 401 || 
@@ -74,9 +80,13 @@ serve(async (req) => {
           errorMessage.includes("key") ||
           errorMessage.includes("quota") ||
           errorMessage.includes("exceeded")) {
+        
+        // Log the exact error type for debugging
+        console.error("Authentication or quota error detected:", errorMessage);
+        
         return new Response(
           JSON.stringify({ 
-            error: `OpenAI API error: ${errorMessage}`,
+            error: errorMessage,
             message: 'Please check your OpenAI API key and quota'
           }),
           { 
@@ -87,7 +97,7 @@ serve(async (req) => {
       }
       
       return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${errorMessage}` }),
+        JSON.stringify({ error: errorMessage }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

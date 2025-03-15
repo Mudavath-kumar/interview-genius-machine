@@ -15,6 +15,7 @@ interface TextToSpeechProps {
 const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
   const [retries, setRetries] = useState(0);
   const [missingAPIKey, setMissingAPIKey] = useState(false);
+  const [apiError, setApiError] = useState<string | undefined>(undefined);
   
   const { 
     isPlaying, 
@@ -36,8 +37,9 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       return;
     }
 
-    // Reset missing API key state
+    // Reset API key state
     setMissingAPIKey(false);
+    setApiError(undefined);
     setIsLoading(true);
     
     try {
@@ -45,8 +47,9 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
       
       if (result.missingAPIKey) {
         setMissingAPIKey(true);
+        setApiError(result.error);
         setIsLoading(false);
-        toast.error("OpenAI API key is missing or invalid. Please check Supabase project secrets.");
+        toast.error(result.error || "OpenAI API key is missing or invalid. Please check Supabase project secrets.");
         return;
       }
 
@@ -80,7 +83,7 @@ const TextToSpeech = ({ text, voice = "alloy" }: TextToSpeechProps) => {
 
   return (
     <>
-      {missingAPIKey && <APIKeyNotification />}
+      {missingAPIKey && <APIKeyNotification error={apiError} />}
       <Button
         onClick={handlePlay}
         variant="outline"

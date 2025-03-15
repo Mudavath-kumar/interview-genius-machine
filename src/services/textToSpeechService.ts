@@ -28,17 +28,25 @@ export const synthesizeSpeech = async ({
       return { error: `Function error: ${error.message}` };
     }
 
-    // Check if the response contains error related to API key
-    if (data?.error && (
-        data.error.includes("API key") || 
-        data.error.includes("quota") ||
-        data.error.includes("authentication")
-    )) {
-      console.error("API key related error:", data.error);
-      return { 
-        missingAPIKey: true,
-        error: data.error || "OpenAI API key is invalid or missing"
-      };
+    // Check if the response contains error related to API key or quota
+    if (data?.error) {
+      console.error("API error:", data.error);
+      
+      const errorLower = data.error.toLowerCase();
+      const isApiKeyOrQuotaError = errorLower.includes("api key") || 
+                                 errorLower.includes("quota") ||
+                                 errorLower.includes("exceeded") ||
+                                 errorLower.includes("authentication") ||
+                                 errorLower.includes("billing");
+      
+      if (isApiKeyOrQuotaError) {
+        return { 
+          missingAPIKey: true,
+          error: data.error
+        };
+      }
+      
+      return { error: data.error };
     }
 
     if (!data || !data.audio) {
@@ -52,11 +60,13 @@ export const synthesizeSpeech = async ({
   } catch (err: any) {
     console.error("Error synthesizing speech:", err);
     
-    // Check if error is related to API key
-    if (err.message?.includes("API key") || 
-        err.message?.toLowerCase().includes("authentication") || 
-        err.message?.toLowerCase().includes("auth") ||
-        err.message?.toLowerCase().includes("quota")) {
+    // Check if error is related to API key or quota
+    const errorMsg = err.message?.toLowerCase() || '';
+    if (errorMsg.includes("api key") || 
+        errorMsg.includes("authentication") || 
+        errorMsg.includes("auth") ||
+        errorMsg.includes("quota") ||
+        errorMsg.includes("exceeded")) {
       return {
         missingAPIKey: true,
         error: err.message
