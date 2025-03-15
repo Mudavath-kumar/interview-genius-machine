@@ -67,15 +67,20 @@ serve(async (req) => {
       
       console.error("OpenAI API error:", errorMessage);
       
-      // Check if it's an authentication error
-      if (response.status === 401 || errorMessage.includes("auth") || errorMessage.includes("key")) {
+      // Check if it's an authentication or quota error
+      if (response.status === 401 || 
+          response.status === 429 || 
+          errorMessage.includes("auth") || 
+          errorMessage.includes("key") ||
+          errorMessage.includes("quota") ||
+          errorMessage.includes("exceeded")) {
         return new Response(
           JSON.stringify({ 
-            error: 'OpenAI API key is invalid',
-            message: 'The provided OpenAI API key was rejected. Please check your key and try again.'
+            error: `OpenAI API error: ${errorMessage}`,
+            message: 'Please check your OpenAI API key and quota'
           }),
           { 
-            status: 401, 
+            status: response.status, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );

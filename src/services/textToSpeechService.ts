@@ -28,17 +28,21 @@ export const synthesizeSpeech = async ({
       return { error: `Function error: ${error.message}` };
     }
 
+    // Check if the response contains error related to API key
+    if (data?.error && (
+        data.error.includes("API key") || 
+        data.error.includes("quota") ||
+        data.error.includes("authentication")
+    )) {
+      console.error("API key related error:", data.error);
+      return { 
+        missingAPIKey: true,
+        error: data.error || "OpenAI API key is invalid or missing"
+      };
+    }
+
     if (!data || !data.audio) {
       console.error("Invalid response:", data);
-      
-      // Check if it's an API key issue
-      if (data?.error?.includes("API key") || data?.error?.includes("authentication")) {
-        return { 
-          missingAPIKey: true,
-          error: data?.error || "OpenAI API key is invalid or missing"
-        };
-      }
-      
       return { error: data?.error || "No audio data returned" };
     }
 
@@ -51,7 +55,8 @@ export const synthesizeSpeech = async ({
     // Check if error is related to API key
     if (err.message?.includes("API key") || 
         err.message?.toLowerCase().includes("authentication") || 
-        err.message?.toLowerCase().includes("auth")) {
+        err.message?.toLowerCase().includes("auth") ||
+        err.message?.toLowerCase().includes("quota")) {
       return {
         missingAPIKey: true,
         error: err.message
