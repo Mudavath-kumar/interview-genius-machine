@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; 
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Info } from "lucide-react";
+import { Loader2, MessageSquare, Info, Volume2, VolumeX } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { 
@@ -35,6 +35,7 @@ const DemoGenerator = () => {
   const [selectedJobDescription, setSelectedJobDescription] = useState<JobDescription | null>(null);
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({});
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [autoPlayedAnswers, setAutoPlayedAnswers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const checkApiKey = async () => {
@@ -67,6 +68,24 @@ const DemoGenerator = () => {
     enabled: false, // Don't fetch automatically, wait for user action
   });
 
+  useEffect(() => {
+    if (selectedQuestionId && !autoPlayedAnswers[selectedQuestionId]) {
+      const selectedQuestion = questions.find(q => q.id === selectedQuestionId);
+      
+      if (selectedQuestion?.sample_answer && !autoPlayedAnswers[selectedQuestionId]) {
+        setAutoPlayedAnswers(prev => ({
+          ...prev,
+          [selectedQuestionId]: true
+        }));
+        
+        setShowAnswers(prev => ({
+          ...prev,
+          [selectedQuestionId]: true
+        }));
+      }
+    }
+  }, [selectedQuestionId, questions, autoPlayedAnswers]);
+
   const handleTypeChange = async (value: QuestionType) => {
     setQuestionType(value);
     if (difficultyLevel && mode === "manual") {
@@ -87,6 +106,7 @@ const DemoGenerator = () => {
       setTranscript(null);
       setFeedback(null);
       setShowAnswers({});
+      setAutoPlayedAnswers({});
       
       await refetch();
       toast.success("Questions generated successfully!");
@@ -97,9 +117,13 @@ const DemoGenerator = () => {
   };
 
   const handleQuestionSelect = (questionId: string) => {
-    setSelectedQuestionId(questionId === selectedQuestionId ? null : questionId);
-    setTranscript(null);
-    setFeedback(null);
+    if (questionId !== selectedQuestionId) {
+      setSelectedQuestionId(questionId);
+      setTranscript(null);
+      setFeedback(null);
+    } else {
+      setSelectedQuestionId(null);
+    }
   };
 
   const handleTranscriptReady = (newTranscript: string, newFeedback: string) => {
@@ -121,6 +145,45 @@ const DemoGenerator = () => {
 
   const getSelectedQuestion = () => {
     return questions.find(q => q.id === selectedQuestionId);
+  };
+
+  const renderSampleAnswer = (question: Question) => {
+    if (!question.sample_answer) return null;
+    
+    return (
+      <div className="mt-3">
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleAnswer(question.id);
+            }}
+          >
+            {showAnswers[question.id] ? "Hide Sample Answer" : "View Sample Answer"}
+          </Button>
+          
+          <TextToSpeech 
+            text={question.sample_answer} 
+            voice="nova"
+          />
+        </div>
+        
+        {showAnswers[question.id] && (
+          <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-200">
+            <div className="flex justify-between items-center mb-2">
+              <h5 className="text-sm font-medium">Sample Answer:</h5>
+              <TextToSpeech 
+                text={question.sample_answer} 
+                voice="nova"
+              />
+            </div>
+            <p className="text-gray-700 text-sm">{question.sample_answer}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (error) {
@@ -241,7 +304,7 @@ const DemoGenerator = () => {
             <div>
               <h3 className="text-xl font-semibold mb-4">Generated Questions</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Click on a question to practice answering it with voice recognition or listen to sample answers.
+                Click on a question to practice answering it. Listen to sample answers with the speaker icon.
               </p>
               <div className="space-y-4">
                 {questions.map((question) => (
@@ -261,42 +324,7 @@ const DemoGenerator = () => {
                       </div>
                       <p className="text-gray-800">{question.text}</p>
                       
-                      {question.sample_answer && (
-                        <div className="mt-3">
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleAnswer(question.id);
-                              }}
-                            >
-                              {showAnswers[question.id] ? "Hide Sample Answer" : "View Sample Answer"}
-                            </Button>
-                            
-                            {!showAnswers[question.id] && (
-                              <TextToSpeech 
-                                text={question.sample_answer} 
-                                voice="nova"
-                              />
-                            )}
-                          </div>
-                          
-                          {showAnswers[question.id] && (
-                            <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-200">
-                              <div className="flex justify-between items-center mb-2">
-                                <h5 className="text-sm font-medium">Sample Answer:</h5>
-                                <TextToSpeech 
-                                  text={question.sample_answer} 
-                                  voice="nova"
-                                />
-                              </div>
-                              <p className="text-gray-700 text-sm">{question.sample_answer}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {renderSampleAnswer(question)}
                       
                       {selectedQuestionId === question.id && (
                         <div className="mt-4 pt-4 border-t border-gray-200">
